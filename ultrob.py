@@ -33,36 +33,36 @@ def build_cells(labMap):
                 c = labMap[2 * i][3 * j + 2]
                 cells[i][j]['right'] = c != ' '
             else:
-                cells[i][j]['right'] = True  # Bordo della mappa, considerato come muro
+                cells[i][j]['right'] = False  # Non considerare il bordo come muro
 
             # Muro a sinistra
             if j >= 1:
                 c = labMap[2 * i][3 * j - 1]
                 cells[i][j]['left'] = c != ' '
             else:
-                cells[i][j]['left'] = True  # Bordo della mappa, considerato come muro
+                cells[i][j]['left'] = False  # Non considerare il bordo come muro
 
             # Muro in alto
             if i <= 5:
                 wall_found = False
-                for k in range(3 * j, 3 * j + 2):  # Cambiato intervallo
+                for k in range(3 * j, 3 * j + 2):
                     if labMap[2 * i + 1][k] != ' ':
                         wall_found = True
                         break
                 cells[i][j]['top'] = wall_found
             else:
-                cells[i][j]['top'] = True  # Bordo della mappa, considerato come muro
+                cells[i][j]['top'] = False  # Non considerare il bordo come muro
 
             # Muro in basso
             if i >= 1:
                 wall_found = False
-                for k in range(3 * j, 3 * j + 2):  # Cambiato intervallo
+                for k in range(3 * j, 3 * j + 2):
                     if labMap[2 * i - 1][k] != ' ':
                         wall_found = True
                         break
                 cells[i][j]['bottom'] = wall_found
             else:
-                cells[i][j]['bottom'] = True  # Bordo della mappa, considerato come muro
+                cells[i][j]['bottom'] = False  # Non considerare il bordo come muro
     return cells
 
 cells = build_cells(labMap)
@@ -85,27 +85,27 @@ for i in range(7):
         wall_bottom = cells[i][j]['bottom']
         wall_left = cells[i][j]['left']
 
-        # Caso 1: Muri immediati
-        if wall_right:
+        # Caso 1: Bordi con valore 0.5
+        if j == 13:
+            D[0] = 0.5  # Destra
+        if i == 6:
+            D[1] = 0.5  # Sopra
+        if i == 0:
+            D[2] = 0.5  # Sotto
+        if j == 0:
+            D[3] = 0.5  # Sinistra
+
+        # Caso 2: Muri immediati
+        if D[0] is None and wall_right:
             D[0] = 0.4
-        if wall_top:
+        if D[1] is None and wall_top:
             D[1] = 0.4
-        if wall_bottom:
+        if D[2] is None and wall_bottom:
             D[2] = 0.4
-        if wall_left:
+        if D[3] is None and wall_left:
             D[3] = 0.4
 
-        # Caso 2: Muri ai bordi
-        if j == 13:
-            D[0] = 0.5
-        if i == 6:
-            D[1] = 0.5
-        if i == 0:
-            D[2] = 0.5
-        if j == 0:
-            D[3] = 0.5
-
-        # Caso 3: Spazio a destra/sopra/sotto/sinistra con muri adiacenti
+        # Caso 3: Spazio con muri adiacenti
         if D[0] is None and not wall_right and j + 1 < 14:
             if cells[i][j + 1]['top'] or cells[i][j + 1]['bottom']:
                 D[0] = 1.8
@@ -119,7 +119,7 @@ for i in range(7):
             if cells[i][j - 1]['top'] or cells[i][j - 1]['bottom']:
                 D[3] = 1.8
 
-        # Caso 4: Specifici bordi e spazi adiacenti
+        # Caso 4: Bordi con spazi adiacenti
         if D[0] is None and not wall_right:
             if (i == 0 and j + 1 < 14 and not cells[i][j + 1]['top']):
                 D[0] = 2
@@ -157,18 +157,18 @@ for i in range(7):
                (j - 2 >= 0 and not cells[i][j - 2]['bottom'] and i - 1 >= 0 and not cells[i - 1][j - 2]['right']):
                 D[3] = 2.6
 
-        # Caso 6: Condizioni di spazio specifiche con muro davanti
+        # Caso 6: Condizioni con muro davanti
         if D[0] is None and not wall_right and j + 1 < 14:
-            if cells[i][j + 1]['top'] == False and cells[i][j + 1]['bottom'] == False and cells[i][j + 1]['right']:
+            if not cells[i][j + 1]['top'] and not cells[i][j + 1]['bottom'] and cells[i][j + 1]['right']:
                 D[0] = 2.4
         if D[1] is None and not wall_top and i + 1 < 7:
-            if cells[i + 1][j]['left'] == False and cells[i + 1][j]['right'] == False and cells[i + 1][j]['top']:
+            if not cells[i + 1][j]['left'] and not cells[i + 1][j]['right'] and cells[i + 1][j]['top']:
                 D[1] = 2.4
         if D[2] is None and not wall_bottom and i - 1 >= 0:
-            if cells[i - 1][j]['left'] == False and cells[i - 1][j]['right'] == False and cells[i - 1][j]['bottom']:
+            if not cells[i - 1][j]['left'] and not cells[i - 1][j]['right'] and cells[i - 1][j]['bottom']:
                 D[2] = 2.4
         if D[3] is None and not wall_left and j - 1 >= 0:
-            if cells[i][j - 1]['top'] == False and cells[i][j - 1]['bottom'] == False and cells[i][j - 1]['left']:
+            if not cells[i][j - 1]['top'] and not cells[i][j - 1]['bottom'] and cells[i][j - 1]['left']:
                 D[3] = 2.4
 
         # Caso 7: Sensori vicino ai bordi con percorsi aperti
