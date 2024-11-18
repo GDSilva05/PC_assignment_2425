@@ -247,6 +247,40 @@ class MyRob(CRobLinkAngs):
     def gaussian_prob(self, mu, sigma, x):
         return (1.0 / (sqrt(2 * pi) * sigma)) * exp(-0.5 * ((x - mu) ** 2) / (sigma ** 2))
 
+    def motionUpdate(self, lin, ang):
+        # Initialize a new probability map with zeros
+        new_prob_map = [[0.0 for _ in range(CELLCOLS)] for _ in range(CELLROWS)]
+
+        # Define motion uncertainty (you can adjust these values)
+        motion_noise = 0.1  # Standard deviation for movement
+        possible_moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, down, left, right
+
+        for i in range(CELLROWS):
+            for j in range(CELLCOLS):
+                prob = self.prob_map[i][j]
+                if prob > 0:
+                    for move in possible_moves:
+                        new_i = i + move[0]
+                        new_j = j + move[1]
+                        if 0 <= new_i < CELLROWS and 0 <= new_j < CELLCOLS:
+                            # Distribute the probability to neighboring cells
+                            new_prob_map[new_i][new_j] += prob * (1 - motion_noise) / len(possible_moves)
+                        else:
+                            # Probability of hitting a wall or boundary
+                            new_prob_map[i][j] += prob * motion_noise / len(possible_moves)
+
+        # Normalize the new probability map
+        total_prob = sum(sum(row) for row in new_prob_map)
+        for i in range(CELLROWS):
+            for j in range(CELLCOLS):
+                new_prob_map[i][j] /= total_prob
+
+        self.prob_map = new_prob_map  # Update the probability map with motion update
+
+        # Print the probability map after motion update
+        print("Probability map after motion update:")
+        self.printProbabilityMap()
+
     def updateLocalization(self):
         sensor_readings = [
             self.measures.irSensor[0],
@@ -274,33 +308,44 @@ class MyRob(CRobLinkAngs):
             updated_probs.append(row_probs)
 
         total_prob = sum(sum(row) for row in updated_probs)
-        for i in range(CELLROWS):
-            for j in range(CELLCOLS):
-                updated_probs[i][j] /= total_prob
+        if total_prob > 0:
+            for i in range(CELLROWS):
+                for j in range(CELLCOLS):
+                    updated_probs[i][j] /= total_prob
+        else:
+            # Handle the case where total_prob is zero to avoid division by zero
+            updated_probs = self.prob_map  # Keep the prior if measurement likelihood is zero
 
         self.prob_map = updated_probs
 
-        with open("localization.out", "a") as f:
-            for row in reversed(self.prob_map):
-                line = " ".join(f"{p:.4f}" for p in row)
-                print(line)
-                f.write(line + "\n")
-            f.write("\n")
+        # Print the probability map after measurement update
+        print("Probability map after measurement update:")
+        self.printProbabilityMap()
+
+    def printProbabilityMap(self):
+        for row in reversed(self.prob_map):
+            line = " ".join(f"{p:.4f}" for p in row)
+            print(line)
+        print("\n")
 
     def applyMovementModel(self, in_left_t, in_right_t):
-        # Aggiorna `out_left` e `out_right` con la media dei valori attuali e precedenti
-        self.out_left = (in_left_t + self.out_left) / 2
-        self.out_right = (in_right_t + self.out_right) / 2
+        # Update movement outputs
+        self.out_left = in_left_t
+        self.out_right = in_right_t
 
-        # Calcola il movimento lineare del robot
+        # Calculate linear and angular movements
         lin = (self.out_right + self.out_left) / 2
-        self.distance_sum += lin  # Incrementa la distanza totale percorsa
+        ang = (self.out_right - self.out_left) / ROBOT_DIAM
 
-        # Verifica se il robot ha completato un movimento di 2 unità (multiplo di 2)
-        if self.distance_sum >= 2.0:
-            print(f"Centro della cella raggiunto con distanza accumulata di {self.distance_sum} unità")
-            self.updateLocalization()  # Aggiorna e stampa la tabella delle probabilità
-            self.distance_sum -= 2.0  # Sottrae 2 per riavviare il conteggio per la prossima cella di 2 unità
+        # Update distance sum
+        self.distance_sum += lin
+
+        # If the robot has moved approximately one cell size, perform motion update
+        if self.distance_sum >= CELL_SIZE:
+            print(f"Moved one cell size with accumulated distance {self.distance_sum}")
+            self.motionUpdate(lin, ang)  # Perform the motion update
+            self.updateLocalization()    # Update and print the probability map after motion
+            self.distance_sum -= CELL_SIZE  # Reset the distance sum for the next cell
 
     def run(self):
         if self.status != 0:
