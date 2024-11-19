@@ -215,8 +215,10 @@ def compute_expected_measures(cells):
         for d in D:
             # Calcola M, tronca alla prima cifra decimale
             m_value = 1 / d + noise
-            truncated_m = math.trunc(m_value * 10) / 10
-            M.append(truncated_m)
+            #truncated_m = math.trunc(m_value * 10) / 10
+            rounded_m = round(m_value, 1)
+            M.append(rounded_m)
+            #M.append(truncated_m)
         M_values[key] = M
 
     return M_values
