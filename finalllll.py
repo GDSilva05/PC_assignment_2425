@@ -228,12 +228,16 @@ class MyRob(CRobLinkAngs):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
         self.prob_map = [[1.0 / (CELLROWS * CELLCOLS)] * CELLCOLS for _ in range(CELLROWS)]
         self.state = 'stop'
-
         self.distance_sum = 0.0  # Somma delle distanze percorse
         self.out_left = 0.0      # Potenza applicata al motore sinistro al tempo t-1 (inizialmente fermo)
         self.out_right = 0.0     # Potenza applicata al motore destro al tempo t-1 (inizialmente fermo)
         self.M_values = M_values
         self.noise = 0.1  # Standard deviation for sensor noise
+        self.file_name = "localization.out"
+
+        # Clear the file at the start
+        with open(self.file_name, "w") as f:
+            f.write("")
 
     def setMap(self, labMap):
         self.labMap = labMap
@@ -329,6 +333,13 @@ class MyRob(CRobLinkAngs):
             line = " ".join(f"{p:.4f}" for p in row)
             print(line)
         print("\n")
+        
+        # Append to file
+        with open(self.file_name, "a") as f:
+            for row in reversed(self.prob_map):
+                line = " ".join(f"{p:.4f}" for p in row)
+                f.write(line + "\n")
+            f.write("\n")  # Add a blank line to separate tables
 
     def applyMovementModel(self, in_left_t, in_right_t):
         # Update movement outputs
