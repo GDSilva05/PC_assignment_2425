@@ -258,8 +258,8 @@ class MyRob(CRobLinkAngs):
         new_prob_map = [[0.0 for _ in range(CELLCOLS)] for _ in range(CELLROWS)]
 
         # Define motion uncertainty (you can adjust these values)
-        motion_noise = 0.1  # Standard deviation for movement
-        possible_moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Up, down, left, right
+        motion_noise = 0  # Standard deviation for movement
+        possible_moves = [(0, 1)]  # Forward
 
         for i in range(CELLROWS):
             for j in range(CELLCOLS):
@@ -415,30 +415,11 @@ class MyRob(CRobLinkAngs):
         FRONT_THRESHOLD = 3.0
 
         if self.state == 'run':
-            if self.measures.irSensor[center_id] > FRONT_THRESHOLD:
-                if self.measures.irSensor[left_id] < self.measures.irSensor[right_id]:
-                    print('Ostacolo davanti, fermo e ruota a sinistra')
-                    self.state = 'rotate_left'
-                else:
-                    print('Ostacolo davanti, fermo e ruota a destra')
-                    self.state = 'rotate_right'
-            else:
+            if self.measures.irSensor[center_id] < FRONT_THRESHOLD:
                 print('Percorso libero, vai avanti')
                 # Passa i valori di input per il movimento in avanti
                 self.applyMovementModel(0.1, 0.1)
                 self.driveMotors(0.1, 0.1)
-
-        elif self.state == 'rotate_left':
-            self.applyMovementModel(-0.1, +0.1)
-            time.sleep(1.5)
-            self.driveMotors(0.0, 0.0)
-            self.state = 'run'
-
-        elif self.state == 'rotate_right':
-            self.applyMovementModel(+0.1, -0.1)
-            time.sleep(1.5)
-            self.driveMotors(0.0, 0.0)
-            self.state = 'run'
 
 class Map():
     def __init__(self, filename):
@@ -465,6 +446,19 @@ if __name__ == '__main__':
     host = "localhost"
     pos = 1
     mapc = None
+
+    for i in range(1, len(sys.argv), 2):
+        if (sys.argv[i] == "--host" or sys.argv[i] == "-h") and i != len(sys.argv) - 1:
+            host = sys.argv[i + 1]
+        elif (sys.argv[i] == "--pos" or sys.argv[i] == "-p") and i != len(sys.argv) - 1:
+            pos = int(sys.argv[i + 1])
+        elif (sys.argv[i] == "--robname" or sys.argv[i] == "-r") and i != len(sys.argv) - 1:
+            rob_name = sys.argv[i + 1]
+        elif (sys.argv[i] == "--map" or sys.argv[i] == "-m") and i != len(sys.argv) - 1:
+            mapc = Map(sys.argv[i + 1])
+        else:
+            print("Unknown argument", sys.argv[i])
+            quit()
 
     # Costruisci labMap dai pattern forniti
     patterns = [
