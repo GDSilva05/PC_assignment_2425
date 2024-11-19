@@ -365,14 +365,13 @@ class MyRob(CRobLinkAngs):
             print("Connessione rifiutata o errore")
             quit()
 
-        stopped_state = 'run'
         print("Robot avviato")
 
         # Leggi i sensori una volta per inizializzare `measures` prima di usare `updateLocalization`
         self.readSensors()
 
-        # **NUOVA CHIAMATA PER CONSIDERARE IL PUNTO INIZIALE COME CENTRO DELLA CELLA**
-        self.updateLocalization()  # Inizializza la localizzazione dal punto di partenza
+        # Inizializza la localizzazione dal punto di partenza
+        self.updateLocalization()
 
         while True:
             self.readSensors()
@@ -382,25 +381,26 @@ class MyRob(CRobLinkAngs):
                 quit()
 
             if self.state == 'stop' and self.measures.start:
-                self.state = stopped_state
+                self.state = 'run'
 
             if self.state != 'stop' and self.measures.stop:
-                stopped_state = self.state
                 self.state = 'stop'
 
             if self.state == 'run':
-                if self.measures.visitingLed:
-                    self.state = 'wait'
-                if self.measures.ground == 0:
-                    self.setVisitingLed(True)
+                # Remova ou comente as seguintes linhas
+                # if self.measures.visitingLed:
+                #     self.state = 'wait'
+                # if self.measures.ground == 0:
+                #     self.setVisitingLed(True)
                 self.wander()
-            elif self.state == 'wait':
-                self.setReturningLed(True)
-                if self.measures.visitingLed:
-                    self.setVisitingLed(False)
-                if self.measures.returningLed:
-                    self.state = 'return'
-                self.driveMotors(0.0, 0.0)
+            # Remova o bloco elif para o estado 'wait' se não for mais necessário
+            # elif self.state == 'wait':
+            #     self.setReturningLed(True)
+            #     if self.measures.visitingLed:
+            #         self.setVisitingLed(False)
+            #     if self.measures.returningLed:
+            #         self.state = 'return'
+            #     self.driveMotors(0.0, 0.0)
             elif self.state == 'return':
                 if self.measures.visitingLed:
                     self.setVisitingLed(False)
@@ -409,15 +409,16 @@ class MyRob(CRobLinkAngs):
                 self.wander()
 
     def wander(self):
-        center_id = 0
-        left_id = 1
-        right_id = 2
-        FRONT_THRESHOLD = 3.0
+        center_id = 0  # Índice do sensor frontal
+        FRONT_THRESHOLD = 0.5  # Ajuste este valor conforme necessário
 
         if self.state == 'run':
-            if self.measures.irSensor[center_id] < FRONT_THRESHOLD:
-                print('Percorso libero, vai avanti')
-                # Passa i valori di input per il movimento in avanti
+            if self.measures.irSensor[0]>2.6:  # Supondo que exista um atributo para colisão
+                print('Colisão detectada, parando o robô.')
+                self.driveMotors(0.0, 0.0)
+                self.state = 'stop'
+            else:
+                print('Caminho livre, continuando em frente.')
                 self.applyMovementModel(0.1, 0.1)
                 self.driveMotors(0.1, 0.1)
 
